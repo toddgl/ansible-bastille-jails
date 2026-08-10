@@ -1,0 +1,28 @@
+---
+- name: Ensure pkg repos directory exists inside jail
+  ansible.builtin.file:
+    path: /usr/local/etc/pkg/repos
+    state: directory
+    mode: '0755'
+
+- name: Disable official FreeBSD repository
+  ansible.builtin.copy:
+    content: |
+      FreeBSD: { enabled: false }
+    dest: /usr/local/etc/pkg/repos/FreeBSD.conf
+    mode: '0644'
+
+- name: Configure local Poudriere repository
+  ansible.builtin.copy:
+    content: |
+      Poudriere: {
+        url: "file://{{ jail_pkg_mount_dir }}",
+        mirror_type: "file",
+        enabled: true
+      }
+    dest: /usr/local/etc/pkg/repos/Poudriere.conf
+    mode: '0644'
+
+- name: Update pkg database from Poudriere repo
+  ansible.builtin.command: pkg update -f
+  changed_when: false

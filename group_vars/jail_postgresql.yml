@@ -1,0 +1,6 @@
+---
+
+jail_roles:
+  - postgresql
+
+postgresql_version: 18

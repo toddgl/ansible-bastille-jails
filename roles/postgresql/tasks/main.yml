@@ -1,0 +1,77 @@
+---
+- name: Install PostgreSQL server package
+  community.general.pkgng:
+    name: postgresql18-server
+    state: present
+
+- name: Enable PostgreSQL in rc.conf
+  community.general.sysrc:
+    name: postgresql_enable
+    value: "YES"
+
+- name: Initialize PostgreSQL database
+  ansible.builtin.command: service postgresql initdb
+  args:
+    creates: /var/db/postgres/data/PG_VERSION
+  notify: Restart postgresql
+
+- name: Ensure PostgreSQL is running
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+
+- name: Ensure pg_hba.conf rules are present
+  community.postgresql.postgresql_pg_hba:
+    dest: /usr/local/pgsql/data/pg_hba.conf
+    contype: "{{ item.contype }}"
+    users: "{{ item.users | default('all') }}"
+    databases: "{{ item.databases | default('all') }}"
+    address: "{{ item.address | default(omit) }}"
+    method: "{{ item.method }}"
+    comment: "{{ item.comment | default(omit) }}"
+    state: present
+  loop:
+    # Unix domain socket connections
+    - contype: local
+      method: trust
+
+    # IPv4 local connections
+    - contype: host
+      address: 127.0.0.1/32
+      method: trust
+
+    - contype: host
+      address: 0.0.0.0/0
+      method: md5
+
+    # IPv6 local connections
+    - contype: host
+      address: ::1/128
+      method: trust
+
+    # Replication connections
+    - contype: local
+      databases: replication
+      method: trust
+
+    - contype: host
+      databases: replication
+      address: 127.0.0.1/32
+      method: trust
+
+    - contype: host
+      databases: replication
+      address: ::1/128
+      method: trust
+
+    # Custom rules for jails and local network
+    - contype: host
+      address: 10.2.2.2/32
+      method: md5
+      comment: Allow access from nextcloud and kanboard jails
+
+    - contype: host
+      address: 192.192.1.0/32
+      method: md5
+      comment: Allow access from local network
+  notify: Reload postgresql

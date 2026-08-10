@@ -1,0 +1,85 @@
+---
+- name: Install Nginx, PHP, and Kanboard
+  community.general.pkgng:
+    name:
+      - nginx
+      - php83
+      - php83-mysqli
+      - php83-pdo_sqlite
+      - php83-mbstring
+      - php83-gd
+      - php83-zlib
+      - php83-kanboard
+    state: present
+
+- name: Create Nginx conf.d directory
+  ansible.builtin.file:
+    path: /usr/local/etc/nginx/conf.d
+    state: directory
+    mode: '0755'
+
+- name: Create SSL certificate directory
+  ansible.builtin.file:
+    path: /usr/local/etc/ssl/kanboard
+    state:  directory
+    mode: '0700'
+  
+- name: Generate self-signed SSL certificate if missing
+  ansible.builtin.command:
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048
+    -keyout /usr/local/etc/ssl/kanboard/kanboard.key
+    -out /usr/local/etc/ssl/kanboard/kanboard.crt
+    -subj " /CN={{ kanboard_server_name | default('kanboard.new') }}"
+  args:
+    creates: /usr/local/etc/ssl/kanboard/kanboard.crt
+
+- name: Deploy main php-fpm.conf
+  ansible.builtin.template:
+    src: php-fpm.conf.j2
+    dest: /usr/local/etc/php-fpm.conf
+    mode: '0644'
+  notify: Restart php-fpm
+
+- name: Deploy php-fpm pool www.conf
+  ansible.builtin.template:
+    src: www.conf.j2
+    dest: /usr/local/etc/php-fpm.d/www.conf
+    mode: '0644'
+  notify: Restart php-fpm
+
+- name: Deploy php kanboard configuration config.php
+  ansible.builtin.template:
+    src: kanboard-php.conf.j2
+    dest: /usr/local/www/kanboard/config.php
+    mode: '0644'
+  notify: Restart php-fpm
+
+- name: Deploy main Nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /usr/local/etc/nginx/nginx.conf
+    mode: '0644'
+  notify: Restart nginx
+
+- name: Deploy Kanboard Nginx vhost configuration
+  ansible.builtin.template:
+    src: kanboard.conf.j2
+    dest: /usr/local/etc/nginx/conf.d/kanboard.conf
+    mode: '0644'
+  notify: Restart nginx
+
+- name: Enable Nginx and PHP-FPM in rc.conf
+  community.general.sysrc:
+    name: "{{ item }}"
+    value: "YES"
+  loop:
+    - nginx_enable
+    - php_fpm_enable
+
+- name: Ensure PHP-FPM and Nginx are running
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+  loop:
+    - php-fpm
+    - nginx

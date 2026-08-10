@@ -1,0 +1,10 @@
+---
+
+bastille_zfs_pool: zrootssd
+bastille_release: 15.1-RELEASE
+
+# Host source directory where Poudriere outputs package tarballs
+poudriere_host_pkg_dir: /usr/local/poudriere/data/packages/151build-default
+
+# Destination path inside each jail
+jail_pkg_mount_dir: /usr/local/packages

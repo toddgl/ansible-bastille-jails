@@ -1,0 +1,27 @@
+---
+- name: Create thick jail if it does not exist
+  ansible.builtin.command: >
+    bastille create -T {{ item }} {{ hostvars[item].release | default(bastille_release) }} {{ hostvars[item].staging_ip }}/32 {{ hostvars[item].interface | default(bastille_interface) }}
+  args:
+    creates: "/usr/local/bastille/jails/{{ item }}"
+  loop: "{{ groups['bastille_jails'] }}"
+
+  - name: Create package mount point inside jail filesystem on host
+  ansible.builtin.file:
+    path: "/usr/local/bastille/jails/{{ item }}/root{{ jail_pkg_mount_dir }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure Poudriere packages are mounted into jail fstab
+  ansible.builtin.lineinfile:
+    path: "/usr/local/bastille/jails/{{ item }}/fstab"
+    line: "{{ poudriere_host_pkg_dir }} {{ jail_pkg_mount_dir }} nullfs ro 0 0"
+    state: present
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure thick jails are started
+  ansible.builtin.command: "bastille start {{ item }}"
+  register: jail_start
+  changed_when: "'Starting' in jail_start.stdout"
+  loop: "{{ groups['bastille_jails'] }}"

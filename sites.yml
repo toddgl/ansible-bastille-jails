@@ -1,0 +1,29 @@
+---
+# Phase 1: Host level setup
+- name: Provision Bastille Jails and Mount Repos
+  hosts: ruru
+  become: true
+  roles:
+    - bastille_jail
+
+# Phase 2: Jail configuration using local Poudriere packages
+- name: Configure PostgreSQL Jail
+  hosts: jail_postgresql
+  become: true
+  roles:
+    - pkg_poudriere
+    - postgresql
+
+- name: Configure Kanboard Jail
+  hosts: jail_kanboard
+  become: true
+  roles:
+    - pkg_poudriere
+    - kanboard
+
+- name: Configure Nextcloud Jail
+  hosts: jail_nextcloud
+  become: true
+  roles:
+    - pkg_poudriere
+    - nextcloud
