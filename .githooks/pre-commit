@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Find staged YAML files that match vault file or directory patterns
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '.*vault.*\.ya?ml|group_vars/.*vault.*')
+
+if [ -z "$FILES" ]; then
+    exit 0
+fi
+
+FAILED=0
+
+for FILE in $FILES; do
+    if [ -f "$FILE" ]; then
+        # Ansible Vault files must start with the $ANSIBLE_VAULT; header
+        FIRST_LINE=$(head -n 1 "$FILE")
+        case "$FIRST_LINE" in
+            "\$ANSIBLE_VAULT;"*)
+                ;;
+            *)
+                echo "CRITICAL ERROR: Unencrypted Ansible Vault file detected in commit!"
+                echo "File: $FILE"
+                echo "Fix with: ansible-vault encrypt $FILE"
+                FAILED=1
+                ;;
+        esac
+    fi
+done
+
+if [ $FAILED -ne 0 ]; then
+    echo "Commit aborted to prevent credential leaks."
+    exit 1
+fi
+
+exit 0

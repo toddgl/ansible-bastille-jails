@@ -90,11 +90,11 @@
   ansible.builtin.command: >
     su -m www -c "php /usr/local/www/nextcloud/occ maintenance:install
     --database='pgsql'
-    --database-host='{{ db_host }}'
-    --database-name='{{ db_name }}'
-    --database-user='{{ db_user }}'
-    --database-pass='{{ db_pass }}'
-    --admin-user='admin'
-    --admin-pass='H8wk2!N3xt'"
+    --database-host='{{ nextcloud_db_host }}'
+    --database-name='{{ nextcloud_db_name }}'
+    --database-user='{{ nextcloud_db_user }}'
+    --database-pass='{{ nextcloud_db_pass }}'
+    --admin-user='{{ nextcloud_admin_user }}'
+    --admin-pass='{{ nextcloud_admin_pass }}'
   args:
     creates: /usr/local/www/nextcloud/config/config.php

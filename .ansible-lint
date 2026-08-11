@@ -1,0 +1,30 @@
+# .ansible-lint
+---
+# Ruleset profile: min, basic, moderate, safety, shared, production
+profile: production
+
+# List of paths to exclude from linting checks
+exclude_paths:
+  - .git/
+  - .githooks/
+  - .venv/
+  # Exclude Ansible Vault files
+  - "**/vault.yml"
+  - "**/vault/*.yml"
+
+# Force offline mode
+offline: true
+
+# Rule settings and exceptions
+skip_list:
+  # Allow simple role names like roles/postgresql
+  - role-name
+
+# Warnings only for non-critical rules
+warn_list:
+  - fqcn
+  - experimental
+
+# Output display preferences
+quiet: false
+verbosity: 0

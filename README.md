@@ -7,7 +7,7 @@
 
 Run the complete deployment with:
 
-``ansible-playbook site.yml'``
+``ansible-playbook site.yml --ask-vault-pass'``
 
 To target a single service after initial creation (e.g., updating PostgreSQL settings inside its jail):
 

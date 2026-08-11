@@ -1,4 +1,9 @@
 ---
 
+kanboard_db_host: 10.2.2.12
+kanboard_db_name: kanboard
+kanboard_db_user: kanboard
+kanboard_db_pass: "{{ vault_kanboard_db_password }}"
+
 jail_roles:
   - kanboard

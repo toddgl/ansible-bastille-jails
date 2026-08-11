@@ -1,4 +1,13 @@
 ---
 
+nextcloud_db_host: 10.2.2.12
+nextcloud_db_name: nextcloud
+nextcloud_db_user: nextcloud
+nextcloud_db_pass: "{{ vault_nextcloud_db_password }}"
+nextcloud_admin_user: admin
+nextcloud_admin_pass: "{{ vault_nextcloud_admin_password }}"
+nextcloud_main_user: glenn
+nextcloud_main_pass: "{{ vault_nextcloud_main_password }}"
+
 jail_roles:
   - nextcloud
