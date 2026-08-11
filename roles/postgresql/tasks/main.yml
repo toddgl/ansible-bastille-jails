@@ -4,6 +4,11 @@
     name: postgresql18-server
     state: present
 
+- name: Install psycopg package
+  community.general.pkgng:
+    name: py312-psycopg
+    state: present
+
 - name: Enable PostgreSQL in rc.conf
   community.general.sysrc:
     name: postgresql_enable
@@ -75,3 +80,55 @@
       method: md5
       comment: Allow access from local network
   notify: Reload postgresql
+
+  - name: Create Kanboard database user account
+      community.postgresql.postgresql_user:
+        name: "{{ kanboard_db_user }}"
+        password: "{{ kanboard_db_pass }}"
+        role_attr_flags: "LOGIN"
+        state: present
+      become_user: postgres
+      no_log: true
+
+    - name: Create Kanboard application database assigned to owner
+      community.postgresql.postgresql_db:
+        name: "{{ kanboard_db_name }}"
+        owner: "{{ kanboard_db_user }}"
+        encoding: "UTF-8"
+        state: present
+      become_user: postgres
+
+    - name: Grant all privileges on the Kanboard database to the user
+      community.postgresql.postgresql_privs:
+        db: "{{ kanboard_db_name }}"
+        role: "{{ kanboard_db_user }}"
+        objs: "ALL_IN_SCHEMA"
+        privs: "ALL"
+        state: present
+      become_user: postgres
+
+- name: Create Nextcloud database user account
+      community.postgresql.postgresql_user:
+        name: "{{ nextcloud_db_user }}"
+        password: "{{ nextcloud_db_pass }}"
+        role_attr_flags: "LOGIN"
+        state: present
+      become_user: postgres
+      no_log: true
+
+    - name: Create application Nextclou database assigned to owner
+      community.postgresql.postgresql_db:
+        name: "{{ nextcloud_db_name }}"
+        owner: "{{ nextcloud_db_user }}"
+        encoding: "UTF-8"
+        state: present
+      become_user: postgres
+
+    - name: Grant all privileges on the database to the user
+      community.postgresql.postgresql_privs:
+        db: "{{ nextcloud_db_name }}"
+        role: "{{ nextcloud_db_user }}"
+        objs: "ALL_IN_SCHEMA"
+        privs: "ALL"
+        state: present
+      become_user: postgres
