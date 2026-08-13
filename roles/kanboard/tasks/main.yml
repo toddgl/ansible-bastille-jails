@@ -21,9 +21,9 @@
 - name: Create SSL certificate directory
   ansible.builtin.file:
     path: /usr/local/etc/ssl/kanboard
-    state:  directory
+    state: directory
     mode: '0700'
-  
+
 - name: Generate self-signed SSL certificate if missing
   ansible.builtin.command:
     openssl req -x509 -nodes -days 365 -newkey rsa:2048

@@ -1,5 +1,5 @@
+# roles/postgresql/defaults/main.yml
 ---
-- name: Reload postgresql
-  ansible.builtin.service:
-    name: postgresql
-    state: reloaded
+
+postgresql_data_dir: /var/db/postgres/data
+postgresql_domain: "postgresql.new"

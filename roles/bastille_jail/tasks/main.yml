@@ -1,12 +1,15 @@
 ---
 - name: Create thick jail if it does not exist
   ansible.builtin.command: >
-    bastille create -T {{ item }} {{ hostvars[item].release | default(bastille_release) }} {{ hostvars[item].staging_ip }}/32 {{ hostvars[item].interface | default(bastille_interface) }}
+    bastille create -T {{ item }}
+    {{ hostvars[item].release | default(bastille_release) }}
+    {{ hostvars[item].staging_ip }}/32
+    {{ hostvars[item].interface | default(bastille_interface) }}
   args:
     creates: "/usr/local/bastille/jails/{{ item }}"
   loop: "{{ groups['bastille_jails'] }}"
 
-  - name: Create package mount point inside jail filesystem on host
+- name: Create package mount point inside jail filesystem on host
   ansible.builtin.file:
     path: "/usr/local/bastille/jails/{{ item }}/root{{ jail_pkg_mount_dir }}"
     state: directory
@@ -21,7 +24,7 @@
   loop: "{{ groups['bastille_jails'] }}"
 
 - name: Ensure thick jails are started
-  ansible.builtin.command: "bastille start {{ item }}"
-  register: jail_start
-  changed_when: "'Starting' in jail_start.stdout"
+  ansible.builtin.command: "bastille start {{ item }}" # noqa: command-instead-of-module
+  register: bastille_jail_start
+  changed_when: "'Starting' in bastille_jail_start.stdout"
   loop: "{{ groups['bastille_jails'] }}"

@@ -1,10 +1,14 @@
 ---
-
 bastille_zfs_pool: zrootssd
 bastille_release: 15.1-RELEASE
-
-# Host source directory where Poudriere outputs package tarballs
 poudriere_host_pkg_dir: /usr/local/poudriere/data/packages/151build-default
-
-# Destination path inside each jail
 jail_pkg_mount_dir: /usr/local/packages
+
+# Database variables needed by PostgreSQL, Nextcloud, and Kanboard
+kanboard_db_name: kanboard
+kanboard_db_user: kanboard
+kanboard_db_pass: "{{ vault_kanboard_db_pass }}"
+
+nextcloud_db_name: nextcloud
+nextcloud_db_user: nextcloud
+nextcloud_db_pass: "{{ vault_nextcloud_db_pass }}"
