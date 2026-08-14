@@ -1,4 +1,21 @@
+# roles/bastille_jail/tasks/main.yml
 ---
+
+- name: Ensure Bastille release is bootstrapped
+  ansible.builtin.command: bastille bootstrap {{ bastille_release }} # noqa: command-instead-of-module
+  args:
+    creates: "/usr/local/bastille/releases/{{ bastille_release }}"
+
+- name: Create thick jail if it does not exist
+  ansible.builtin.command: > # noqa: command-instead-of-module
+    bastille create -T {{ item }}
+    {{ hostvars[item].release | default(bastille_release) }}
+    {{ hostvars[item].staging_ip }}/32
+    {{ hostvars[item].interface | default(bastille_interface) }}
+  args:
+    creates: "/usr/local/bastille/jails/{{ item }}"
+  loop: "{{ groups['bastille_jails'] }}"
+
 - name: Create thick jail if it does not exist
   ansible.builtin.command: >
     bastille create -T {{ item }}
@@ -27,4 +44,18 @@
   ansible.builtin.command: "bastille start {{ item }}" # noqa: command-instead-of-module
   register: bastille_jail_start
   changed_when: "'Starting' in bastille_jail_start.stdout"
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure DNS resolution is configured in jails
+  ansible.builtin.copy:
+    src: /etc/resolv.conf
+    dest: "/usr/local/bastille/jails/{{ item }}/root/etc/resolv.conf"
+    remote_src: true
+    mode: '0644'
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure Python 3.12 is installed in jails
+  ansible.builtin.command: "bastille pkg {{ item }} install -y python312" # noqa: command-instead-of-module
+  register: bastille_pkg_python
+  changed_when: "'Extracting python312' in bastille_pkg_python.stdout or 'Installing python312' in bastille_pkg_python.stdout"
   loop: "{{ groups['bastille_jails'] }}"

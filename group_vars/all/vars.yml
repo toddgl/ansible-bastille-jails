@@ -1,8 +1,12 @@
 ---
+
 bastille_zfs_pool: zrootssd
 bastille_release: 15.1-RELEASE
 poudriere_host_pkg_dir: /usr/local/poudriere/data/packages/151build-default
 jail_pkg_mount_dir: /usr/local/packages
+
+# supportign sudo become
+ansible_become_pass: "{{ vault_ansible_become_pass }}"
 
 # Database variables needed by PostgreSQL, Nextcloud, and Kanboard
 kanboard_db_name: kanboard
