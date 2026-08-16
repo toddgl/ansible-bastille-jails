@@ -3,21 +3,22 @@
   community.general.pkgng:
     name:
       - nginx
-      - nextcloud-php83
-      - php83-pgsql
-      - php83-pdo_pgsql
-      - php83-gd
-      - php83-curl
-      - php83-zip
-      - php83-zlib
-      - php83-mbstring
-      - php83-xml
-      - php83-intl
-      - php83-bcmath
-      - php83-gmp
-      - php83-fileinfo
-      - php83-opcache
-      - php83-pecl-imagick
+      - nextcloud-php84
+      - php84-pgsql
+      - php84-pdo_pgsql
+      - php84-gd
+      - php84-curl
+      - php84-zip
+      - php84-zlib
+      - php84-mbstring
+      - php84-xml
+      - php84-intl
+      - php84-bcmath
+      - php84-gmp
+      - php84-fileinfo
+      - php84-opcache
+      - php84-pecl-imagick
+      - py312-cryptography
     state: present
 
 - name: Create Nginx conf.d directory
@@ -32,14 +33,25 @@
     state: directory
     mode: '0700'
 
-- name: Generate self-signed SSL certificate if missing
-  ansible.builtin.command:
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048
-    -keyout /usr/local/etc/ssl/nextcloud/nextcloud.key
-    -out /usr/local/etc/ssl/nextcloud/nextcloud.crt
-    -subj " /CN={{ nextcloud_server_name | default('nextcloud.new') }}"
-  args:
-    creates: /usr/local/etc/ssl/nextcloud/nextcloud.crt
+- name: Generate SSL Private Key
+  community.crypto.openssl_privatekey:
+    path: /usr/local/etc/ssl/nextcloud/nextcloud.key
+    size: 2048
+    type: RSA
+
+- name: Generate OpenSSL Certificate Signing Request (CSR)
+  community.crypto.openssl_csr:
+    path: /usr/local/etc/ssl/nextcloud/nextcloud.csr
+    privatekey_path: /usr/local/etc/ssl/nextcloud/nextcloud.key
+    common_name: "{{ inventory_hostname }}"
+
+- name: Generate Self-Signed Certificate
+  community.crypto.x509_certificate:
+    path: /usr/local/etc/ssl/nextcloud/nextcloud.crt
+    privatekey_path: /usr/local/etc/ssl/nextcloud/nextcloud.key
+    csr_path: /usr/local/etc/ssl/nextcloud/nextcloud.csr
+    provider: selfsigned
+    selfsigned_not_after: "+365d"
 
 - name: Deploy main php-fpm.conf
   ansible.builtin.template:
@@ -83,19 +95,21 @@
     name: "{{ item }}"
     state: started
   loop:
-    - php-fpm
+    - php_fpm
     - nginx
 
 - name: Run Nextcloud automated installer via occ
   ansible.builtin.command:
-    argu:
-      - su -m www -c "php /usr/local/www/nextcloud/occ maintenance:install
-      - --database='pgsql'
-      - --database-host='{{ nextcloud_db_host }}'
-      - --database-name='{{ nextcloud_db_name }}'
-      - --database-user='{{ nextcloud_db_user }}'
-      - --database-pass='{{ nextcloud_db_pass }}'
-      - --admin-user='{{ nextcloud_admin_user }}'
-      - --admin-pass='{{ nextcloud_admin_pass }}'
+    cmd: >
+      php /usr/local/www/nextcloud/occ maintenance:install
+      --database=pgsql
+      --database-host={{ nextcloud_db_host | quote }}
+      --database-name={{ nextcloud_db_name | quote }}
+      --database-user={{ nextcloud_db_user | quote }}
+      --database-pass={{ nextcloud_db_pass | quote }}
+      --admin-user={{ nextcloud_admin_user | quote }}
+      --admin-pass={{ nextcloud_admin_pass | quote }}
+  become: true
+  become_user: www
   args:
     creates: /usr/local/www/nextcloud/config/config.php

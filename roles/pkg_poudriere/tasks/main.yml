@@ -11,6 +11,8 @@
   ansible.builtin.copy:
     content: |
       FreeBSD: { enabled: false }
+      FreeBSD-ports: { enabled: false }
+      FreeBSD-ports-kmods: { enabled: false }
     dest: /usr/local/etc/pkg/repos/FreeBSD.conf
     mode: '0644'
 
@@ -18,13 +20,14 @@
   ansible.builtin.copy:
     content: |
       Poudriere: {
-        url: "file://{{ jail_pkg_mount_dir }}",
+        url: "file:///usr/local/packages",
         mirror_type: "file",
+        signature_type: "none",
         enabled: true
       }
     dest: /usr/local/etc/pkg/repos/Poudriere.conf
     mode: '0644'
 
 - name: Update pkg database from Poudriere repo
-  ansible.builtin.command: pkg update -f
+  ansible.builtin.command: pkg update -f -r Poudriere
   changed_when: false

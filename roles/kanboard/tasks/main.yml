@@ -3,13 +3,14 @@
   community.general.pkgng:
     name:
       - nginx
-      - php83
-      - php83-mysqli
-      - php83-pdo_sqlite
-      - php83-mbstring
-      - php83-gd
-      - php83-zlib
-      - php83-kanboard
+      - php84
+      - php84-mysqli
+      - php84-pdo_sqlite
+      - php84-mbstring
+      - php84-gd
+      - php84-zlib
+      - php84-kanboard
+      - py312-cryptography
     state: present
 
 - name: Create Nginx conf.d directory
@@ -24,14 +25,25 @@
     state: directory
     mode: '0700'
 
-- name: Generate self-signed SSL certificate if missing
-  ansible.builtin.command:
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048
-    -keyout /usr/local/etc/ssl/kanboard/kanboard.key
-    -out /usr/local/etc/ssl/kanboard/kanboard.crt
-    -subj " /CN={{ kanboard_server_name | default('kanboard.new') }}"
-  args:
-    creates: /usr/local/etc/ssl/kanboard/kanboard.crt
+- name: Generate SSL Private Key
+  community.crypto.openssl_privatekey:
+    path: /usr/local/etc/ssl/kanboard/kanboard.key
+    size: 2048
+    type: RSA
+
+- name: Generate OpenSSL Certificate Signing Request (CSR)
+  community.crypto.openssl_csr:
+    path: /usr/local/etc/ssl/kanboard/kanboard.csr
+    privatekey_path: /usr/local/etc/ssl/kanboard/kanboard.key
+    common_name: "{{ inventory_hostname }}"
+
+- name: Generate Self-Signed Certificate
+  community.crypto.x509_certificate:
+    path: /usr/local/etc/ssl/kanboard/kanboard.crt
+    privatekey_path: /usr/local/etc/ssl/kanboard/kanboard.key
+    csr_path: /usr/local/etc/ssl/kanboard/kanboard.csr
+    provider: selfsigned
+    selfsigned_not_after: "+365d"
 
 - name: Deploy main php-fpm.conf
   ansible.builtin.template:
@@ -81,5 +93,5 @@
     name: "{{ item }}"
     state: started
   loop:
-    - php-fpm
+    - php_fpm
     - nginx

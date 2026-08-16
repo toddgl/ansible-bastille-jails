@@ -1,13 +1,13 @@
 # roles/bastille_jail/tasks/main.yml
 ---
-
 - name: Ensure Bastille release is bootstrapped
   ansible.builtin.command: bastille bootstrap {{ bastille_release }} # noqa: command-instead-of-module
   args:
     creates: "/usr/local/bastille/releases/{{ bastille_release }}"
 
 - name: Create thick jail if it does not exist
-  ansible.builtin.command: > # noqa: command-instead-of-module
+  ansible.builtin.command: # noqa: command-instead-of-module
+    >
     bastille create -T {{ item }}
     {{ hostvars[item].release | default(bastille_release) }}
     {{ hostvars[item].staging_ip }}/32
@@ -16,28 +16,20 @@
     creates: "/usr/local/bastille/jails/{{ item }}"
   loop: "{{ groups['bastille_jails'] }}"
 
-- name: Create thick jail if it does not exist
-  ansible.builtin.command: >
-    bastille create -T {{ item }}
-    {{ hostvars[item].release | default(bastille_release) }}
-    {{ hostvars[item].staging_ip }}/32
-    {{ hostvars[item].interface | default(bastille_interface) }}
-  args:
-    creates: "/usr/local/bastille/jails/{{ item }}"
-  loop: "{{ groups['bastille_jails'] }}"
+- name: Enable System V IPC for PostgreSQL jail
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - bastille config postgres-new set sysvshm new
+    - bastille config postgres-new set sysvsem new
+    - bastille config postgres-new set sysvmsg new
+  changed_when: false
+  when: "'jail_postgresql' in group_names"
 
-- name: Create package mount point inside jail filesystem on host
+- name: Ensure Poudriere mount point directory exists inside jail root
   ansible.builtin.file:
-    path: "/usr/local/bastille/jails/{{ item }}/root{{ jail_pkg_mount_dir }}"
+    path: "/usr/local/bastille/jails/{{ item }}/root/usr/local/packages"
     state: directory
     mode: '0755'
-  loop: "{{ groups['bastille_jails'] }}"
-
-- name: Ensure Poudriere packages are mounted into jail fstab
-  ansible.builtin.lineinfile:
-    path: "/usr/local/bastille/jails/{{ item }}/fstab"
-    line: "{{ poudriere_host_pkg_dir }} {{ jail_pkg_mount_dir }} nullfs ro 0 0"
-    state: present
   loop: "{{ groups['bastille_jails'] }}"
 
 - name: Ensure thick jails are started
@@ -46,16 +38,50 @@
   changed_when: "'Starting' in bastille_jail_start.stdout"
   loop: "{{ groups['bastille_jails'] }}"
 
-- name: Ensure DNS resolution is configured in jails
+- name: Ensure pkg repos directory exists inside jail root
+  ansible.builtin.file:
+    path: "/usr/local/bastille/jails/{{ item }}/root/usr/local/etc/pkg/repos"
+    state: directory
+    mode: '0755'
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Disable official FreeBSD repository inside jail
   ansible.builtin.copy:
-    src: /etc/resolv.conf
-    dest: "/usr/local/bastille/jails/{{ item }}/root/etc/resolv.conf"
-    remote_src: true
+    content: |
+      FreeBSD: { enabled: false }
+    dest: "/usr/local/bastille/jails/{{ item }}/root/usr/local/etc/pkg/repos/FreeBSD.conf"
     mode: '0644'
   loop: "{{ groups['bastille_jails'] }}"
 
-- name: Ensure Python 3.12 is installed in jails
-  ansible.builtin.command: "bastille pkg {{ item }} install -y python312" # noqa: command-instead-of-module
-  register: bastille_pkg_python
-  changed_when: "'Extracting python312' in bastille_pkg_python.stdout or 'Installing python312' in bastille_pkg_python.stdout"
+- name: Configure local Poudriere repository inside jail
+  ansible.builtin.copy:
+    content: |
+      Poudriere: {
+        url: "file:///usr/local/packages",
+        mirror_type: "file",
+        signature_type: "none",
+        enabled: true
+      }
+    dest: "/usr/local/bastille/jails/{{ item }}/root/usr/local/etc/pkg/repos/Poudriere.conf"
+    mode: '0644'
   loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure Poudriere packages are mounted into jail fstab
+  ansible.builtin.lineinfile:
+    path: "/usr/local/bastille/jails/{{ item }}/fstab"
+    line: "{{ poudriere_host_pkg_dir }} /usr/local/bastille/jails/{{ item }}/root{{ jail_pkg_mount_dir }} nullfs ro 0 0"
+    state: present
+    create: true
+    mode: '0644'
+  loop: "{{ groups['bastille_jails'] }}"  
+
+- name: Ensure pkg and Python 3.12 are installed from Poudriere
+  ansible.builtin.command: "bastille cmd {{ item }} env ASSUME_ALWAYS_YES=YES pkg install -y pkg python312" # noqa: command-instead-of-module
+  register: bastille_pkg_python
+  changed_when: "'Extracting' in bastille_pkg_python.stdout or 'Installing' in bastille_pkg_python.stdout"
+  loop: "{{ groups['bastille_jails'] }}"
+
+- name: Ensure python symlinks exist inside jail
+  ansible.builtin.command: "bastille cmd {{ item }} ln -sf /usr/local/bin/python3.12 /usr/local/bin/python3" # noqa: command-instead-of-module
+  loop: "{{ groups['bastille_jails'] }}"
+  changed_when: false

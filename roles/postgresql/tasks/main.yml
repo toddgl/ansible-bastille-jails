@@ -17,7 +17,7 @@
 - name: Initialize PostgreSQL database directory
   ansible.builtin.command: service postgresql initdb # noqa command-instead-of-module
   args:
-    creates: /var/db/postgres/data/PG_VERSION
+    creates: "{{ postgresql_data_dir }}"
 
 - name: Ensure PostgreSQL service is running
   ansible.builtin.service:
@@ -26,7 +26,7 @@
 
 - name: Configure pg_hba.conf access rules
   community.postgresql.postgresql_pg_hba:
-    dest: /var/db/postgres/data/pg_hba.conf
+    dest: "{{ postgresql_data_dir }}/pg_hba.conf"
     contype: "{{ item.contype }}"
     users: "{{ item.users | default('all') }}"
     databases: "{{ item.databases | default('all') }}"

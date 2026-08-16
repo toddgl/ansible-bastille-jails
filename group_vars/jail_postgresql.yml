@@ -1,3 +1,4 @@
+# group_vars/jail_posgresql.yml
 ---
 
 postgresql_root_password: "{{ vault_postgresql_root_password }}"
@@ -6,3 +7,4 @@ jail_roles:
   - postgresql
 
 postgresql_version: 18
+postgresql_data_dir: "/var/db/postgres/data{{ postgresql_version }}"
