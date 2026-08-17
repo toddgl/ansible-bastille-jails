@@ -6,6 +6,7 @@
       - php84
       - php84-mysqli
       - php84-pdo_sqlite
+      - php84-pdo_pgsql
       - php84-mbstring
       - php84-gd
       - php84-zlib
