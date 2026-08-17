@@ -72,13 +72,42 @@
     - contype: host
       address: 10.2.2.2/32
       method: md5
-      comment: Allow access from nextcloud and kanboard jails
+      comment: Allow access from mbfair, nextcloud and kanboard jails
 
     - contype: host
       address: 192.192.1.0/32
       method: md5
       comment: Allow access from local network
   notify: Reload postgresql
+
+- name: Create MbFair database user account
+  community.postgresql.postgresql_user:
+    name: "{{ mbfair_db_user }}"
+    password: "{{ mbfair_db_pass }}"
+    role_attr_flags: "LOGIN"
+    state: present
+  become: true
+  become_user: postgres
+  no_log: true
+
+- name: Create MbFair application database
+  community.postgresql.postgresql_db:
+    name: "{{ mbfair_db_name }}"
+    owner: "{{ mbfair_db_user }}"
+    encoding: "UTF-8"
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Grant all schema privileges on MbFair database
+  community.postgresql.postgresql_privs:
+    db: "{{ mbfair_db_name }}"
+    role: "{{ mbfair_db_user }}"
+    objs: "ALL_IN_SCHEMA"
+    privs: "ALL"
+    state: present
+  become: true
+  become_user: postgres
 
 - name: Create Kanboard database user account
   community.postgresql.postgresql_user:

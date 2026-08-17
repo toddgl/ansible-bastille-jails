@@ -8,7 +8,11 @@ jail_pkg_mount_dir: /usr/local/packages
 # supportign sudo become
 ansible_become_pass: "{{ vault_ansible_become_pass }}"
 
-# Database variables needed by PostgreSQL, Nextcloud, and Kanboard
+# Database variables needed by PostgreSQL, MB Fair, Nextcloud, and Kanboard
+mbfair_db_name: fairsystem_db
+mbfair_db_user: glenn
+mbfair_db_pass: "{{ vault_mbfair_db_pass }}"
+
 kanboard_db_name: kanboard
 kanboard_db_user: kanboard
 kanboard_db_pass: "{{ vault_kanboard_db_pass }}"
