@@ -1,4 +1,3 @@
-
 # roles/pkg_poudriere/tasks/main.py
 ---
 - name: Ensure pkg repos directory exists inside jail

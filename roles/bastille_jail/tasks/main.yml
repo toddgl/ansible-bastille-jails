@@ -73,11 +73,11 @@
     state: present
     create: true
     mode: '0644'
-  loop: "{{ groups['bastille_jails'] }}"  
+  loop: "{{ groups['bastille_jails'] }}"
 
 - name: Ensure pkg and Python 3.12 are installed from Poudriere
   ansible.builtin.command: "bastille cmd {{ item }} env ASSUME_ALWAYS_YES=YES pkg install -y pkg python312" # noqa: command-instead-of-module
-  register: bastille_pkg_python
+  register: bastille_jail_pkg_python
   changed_when: "'Extracting' in bastille_pkg_python.stdout or 'Installing' in bastille_pkg_python.stdout"
   loop: "{{ groups['bastille_jails'] }}"
 
